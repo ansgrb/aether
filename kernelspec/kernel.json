@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "rust-notebook-core",
+    "-f",
+    "{connection_file}"
+  ],
+  "display_name": "Aether (RustyNote — Rust + Python Zero-Copy)",
+  "language": "rust",
+  "interrupt_mode": "message",
+  "metadata": {
+    "debugger": false
+  }
+}

@@ -103,3 +103,134 @@ This is the core differentiator. We will use the **Apache Arrow C-Data Interface
 
 ## 6. Monorepo / AI Setup (Future Proofing)
 * **Config Context:** Implement a `%%env` magic that parses TOML/JSON and sets environment variables within the main orchestrator process. Because both `pyo3` and `evcxr` inherit the main process environment, database connection strings established here instantly propagate to both language runtimes.
+
+---
+
+## 7. Workspace Architecture & Crate Layout
+
+The implementation is organized as a 5-crate Cargo workspace (see [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) and [docs/IMPLEMENTATION_SUMMARY.md](docs/IMPLEMENTATION_SUMMARY.md) for deep-dive architectural details):
+
+```text
+aether/
+├── Cargo.toml                      # Workspace root
+├── docs/
+│   ├── IMPLEMENTATION_PLAN.md      # Architecture review & sprint blueprint
+│   └── IMPLEMENTATION_SUMMARY.md   # Implementation summary & benchmark results
+├── kernelspec/
+│   └── kernel.json                 # Jupyter kernelspec definition
+└── crates/
+    ├── aether-protocol/            # Jupyter Wire Protocol v5.3, HMAC-SHA256, ZMQ sockets
+    ├── aether-bridge/              # Zero-copy Arrow C-Data Interface & /dev/shm mmap store
+    ├── aether-engine-rust/         # Stateful evcxr pipeline & rich MIME display (Html, Svg, Markdown)
+    ├── aether-engine-python/       # Embedded PyO3 pipeline, stdout capture, __share_to_rust__
+    └── aether-kernel/              # Binary (`rust-notebook-core`), cell multiplexer, %%env manager
+```
+
+---
+
+## 8. Prerequisites & Installation
+
+### 8.1 Prerequisites
+* **Rust Toolchain:** `rustc >= 1.85` (tested on `rustc 1.99.0`) with the `rust-src` component installed for `evcxr`:
+  ```bash
+  rustup component add rust-src
+  ```
+* **Python Runtime:** Python `>= 3.11` with shared library support (`libpython3.x.so`) and `uv` (recommended) or `venv`.
+
+### 8.2 Set Up Python Environment & Build the Kernel
+```bash
+# 1. Create the local virtual environment and install Polars & PyArrow
+uv venv .venv
+uv pip install --python .venv/bin/python polars pyarrow
+
+# 2. Build the kernel binary (`rust-notebook-core`)
+cargo build --release --bin rust-notebook-core
+```
+
+### 8.3 Register the Kernel with Jupyter / VS Code
+Install the kernelspec so JupyterLab and VS Code Notebooks discover **Aether (RustyNote)**:
+```bash
+# Point kernelspec/kernel.json to the compiled binary or add target/release to PATH
+export PATH="$PWD/target/release:$PATH"
+jupyter kernelspec install ./kernelspec --user --name aether
+```
+*(Alternatively, replace `"rust-notebook-core"` in `kernelspec/kernel.json` with the absolute path `"/path/to/aether/target/release/rust-notebook-core"` before running `jupyter kernelspec install`.)*
+
+---
+
+## 9. Usage Guide & Notebook Cell Magics
+
+### 9.1 Running Directly
+Jupyter or VS Code launches `rust-notebook-core` automatically using the `-f <connection_file.json>` flag:
+```bash
+./target/release/rust-notebook-core -f /path/to/kernel-connection.json
+```
+
+### 9.2 Setting Shared Environment Variables (`%%env`)
+Define environment variables in **TOML** or **JSON** that automatically propagate to both the Python (`os.environ`) and Rust (`std::env::var`) runtimes. Sensitive keys (`*SECRET*`, `*PASSWORD*`, `*TOKEN*`, `*KEY*`, `*URL*`, `*DSN*`) are automatically redacted in notebook output:
+```toml
+%%env
+APP_ENV = "staging"
+DATABASE_URL = "postgres://user:pass@localhost:5432/analytics"
+
+[cluster]
+WORKERS = 8
+API_TOKEN = "secret-token-value"
+```
+
+### 9.3 Executing Python Cells & Sharing DataFrames (`%%python`)
+Prefix a cell with `%%python` (or `%%py`) to execute code inside the embedded `pyo3` runtime. Call `__share_to_rust__(name, df)` on any Polars `DataFrame` or PyArrow `Table`/`RecordBatch` to expose it to Rust via zero-copy memory:
+```python
+%%python
+import os
+import polars as pl
+
+print("Running in env:", os.environ["APP_ENV"])
+
+df = pl.DataFrame({
+    "id": [1, 2, 3, 4],
+    "revenue": [100.5, 250.0, 75.25, 400.0]
+})
+
+# Zero-copy export to the Aether Arrow bridge
+__share_to_rust__("sales_df", df)
+df
+```
+
+### 9.4 Consuming Zero-Copy DataFrames in Rust (`%%rust` or default)
+Cells without a magic header (or prefixed with `%%rust`) execute inside `evcxr`. Any table registered via `__share_to_rust__` is automatically injected into scope when referenced:
+```rust
+%%rust
+let total_rev: f64 = sales_df.col_f64("revenue").iter().sum();
+let rows = sales_df.num_rows();
+println!("Processed {rows} rows with zero copies!");
+total_rev
+```
+For native Rust crates linking against `aether-bridge`, full `arrow_array::RecordBatch` reconstruction is available in `< 0.1ms` via:
+```rust
+let batch: arrow_array::RecordBatch = aether_bridge::load_shared_record_batch("sales_df")?;
+```
+
+### 9.5 Rich Graphical Output (`Svg`, `Html`, `Markdown`)
+Return `Svg(...)`, `Html(...)`, or `Markdown(...)` (or any custom type implementing `AetherDisplay`) from the end of a Rust cell to render rich graphical output in the notebook UI:
+```rust
+%%rust
+Svg(r#"<svg width="160" height="80" xmlns="http://www.w3.org/2000/svg">
+  <rect width="160" height="80" rx="12" fill="#1e293b"/>
+  <text x="80" y="45" fill="#38bdf8" font-family="monospace" font-size="16" text-anchor="middle">Aether Zero-Copy</text>
+</svg>"#)
+```
+
+---
+
+## 10. Running Tests & the 1 GiB Zero-Copy Benchmark
+
+Run the full test suite (unit tests, ZeroMQ HMAC wire protocol tests, end-to-end polyglot binary test, and the 1 GiB Python $\rightarrow$ Rust zero-copy benchmark):
+```bash
+cargo test --workspace -- --nocapture
+```
+
+To run only the **1 GiB Zero-Copy Arrow Benchmark** (`< 5ms` requirement, typically `~50 µs`):
+```bash
+cargo test -p aether-kernel --test protocol_and_pipelines test_sprint4_one_gigabyte_arrow_zero_copy_under_5ms -- --nocapture
+```

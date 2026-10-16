@@ -1,0 +1,21 @@
+[package]
+name = "aether-protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Jupyter Wire Protocol v5.3 framing, HMAC-SHA256 authentication, and ZeroMQ socket layer for Aether"
+
+[dependencies]
+tokio.workspace = true
+zeromq.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+hmac.workspace = true
+sha2.workspace = true
+hex.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+bytes.workspace = true
+thiserror.workspace = true
+tracing.workspace = true

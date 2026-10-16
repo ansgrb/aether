@@ -1,0 +1,48 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/aether-protocol",
+    "crates/aether-bridge",
+    "crates/aether-engine-rust",
+    "crates/aether-engine-python",
+    "crates/aether-kernel",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["Anas Ghareib <ansgrb@gmail.com>"]
+
+[workspace.dependencies]
+aether-protocol = { path = "crates/aether-protocol" }
+aether-bridge = { path = "crates/aether-bridge" }
+aether-engine-rust = { path = "crates/aether-engine-rust" }
+aether-engine-python = { path = "crates/aether-engine-python" }
+
+tokio = { version = "1.40", features = ["full"] }
+zeromq = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+uuid = { version = "1.10", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+bytes = "1.7"
+thiserror = "2.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+evcxr = "0.18"
+pyo3 = { version = "0.24", features = ["auto-initialize"] }
+arrow = { version = "54.0", features = ["ffi", "ipc"] }
+arrow-array = { version = "54.0", features = ["ffi"] }
+arrow-schema = { version = "54.0", features = ["ffi", "serde"] }
+arrow-data = { version = "54.0", features = ["ffi"] }
+arrow-buffer = "54.0"
+arrow-ipc = "54.0"
+memmap2 = "0.9"
+libc = "0.2"
+clap = { version = "4.5", features = ["derive"] }
