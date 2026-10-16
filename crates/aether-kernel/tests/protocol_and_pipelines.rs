@@ -272,13 +272,14 @@ int(df["nums"].sum())
         py_content
     );
 
-    // Step 3: %%rust cell compiled via evcxr consuming `my_df` zero-copy and checking env var
+    // Step 3: %%rust cell compiled via evcxr consuming `my_df` zero-copy with top-level slice binding
     let reply_rs = run_cell(
         &mut shell,
         &signer,
         r#"%%rust
 let host = std::env::var("DB_HOST").unwrap();
-let sum: i64 = my_df.col_i64("nums").iter().sum();
+let nums_slice = my_df.col_i64("nums");
+let sum: i64 = nums_slice.iter().sum();
 format!("{}:{}", host, sum)
 "#,
     )

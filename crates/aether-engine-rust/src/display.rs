@@ -161,7 +161,7 @@ impl AetherFrame {
     pub fn num_columns(&self) -> usize { self.columns.len() }
     pub fn ffi_ptrs(&self) -> (usize, usize) { self.ffi_ptrs }
 
-    pub fn col_i64(&self, name: &str) -> &[i64] {
+    pub fn col_i64(&self, name: &str) -> &'static [i64] {
         let col = self.columns.get(name).expect("column not found in AetherFrame");
         unsafe {
             std::slice::from_raw_parts(
@@ -171,24 +171,13 @@ impl AetherFrame {
         }
     }
 
-    pub fn col_f64(&self, name: &str) -> &[f64] {
+    pub fn col_f64(&self, name: &str) -> &'static [f64] {
         let col = self.columns.get(name).expect("column not found in AetherFrame");
         unsafe {
             std::slice::from_raw_parts(
                 self.ptr.add(col.data_offset) as *const f64,
                 col.byte_len / std::mem::size_of::<f64>(),
             )
-        }
-    }
-}
-
-impl Drop for AetherFrame {
-    fn drop(&mut self) {
-        unsafe extern "C" {
-            fn munmap(addr: *mut std::ffi::c_void, length: usize) -> i32;
-        }
-        if !self.ptr.is_null() && self.map_len > 0 {
-            unsafe { let _ = munmap(self.ptr as *mut std::ffi::c_void, self.map_len); }
         }
     }
 }
