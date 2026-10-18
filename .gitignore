@@ -1,5 +1,20 @@
+# Rust build artifacts
 /target
-/.venv
 **/*.rs.bk
+
+# Internal documentation & design notes
+/docs/
+docs/
+
+# Local virtual environments, caches & editor state
+/.venv/
+/activate/
+/.cargo/
+.vscode/
+.idea/
 *.swp
+*.swo
 .DS_Store
+
+# Runtime mission exports
+mission_*.json

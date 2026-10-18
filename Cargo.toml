@@ -1,50 +1,50 @@
-[workspace]
-resolver = "2"
-members = [
-    "crates/aether-protocol",
-    "crates/aether-bridge",
-    "crates/aether-engine-rust",
-    "crates/aether-engine-python",
-    "crates/aether-kernel",
-]
-
-[workspace.package]
-version = "0.1.0"
+[package]
+name = "aether"
+version = "0.2.0"
 edition = "2021"
-license = "GPL-3.0-or-later"
-authors = ["Anas Ghareib <ansgrb@gmail.com>"]
+license = "GPL-3.0-only"
+authors = ["Anas Ghareib <https://github.com/ansgrb>"]
+description = "Aether (Project BLACKBIRD): Rust-Native Multi-Kernel Notebook & Cyber-Security Mission Cockpit"
 repository = "https://github.com/ansgrb/aether"
-homepage = "https://github.com/ansgrb/aether"
 
-[workspace.dependencies]
-aether-protocol = { path = "crates/aether-protocol" }
-aether-bridge = { path = "crates/aether-bridge" }
-aether-engine-rust = { path = "crates/aether-engine-rust" }
-aether-engine-python = { path = "crates/aether-engine-python" }
+[lib]
+name = "aether"
+path = "src/lib.rs"
 
-tokio = { version = "1.40", features = ["full"] }
-zeromq = "0.4"
+[[bin]]
+name = "aether"
+path = "src/main.rs"
+
+[dependencies]
+# 1. Async Engine & Concurrency Lifecycle
+tokio = { version = "1.38", features = ["full", "process", "sync"] }
+futures-util = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-toml = "0.8"
-hmac = "0.12"
+anyhow = "1.0"
+thiserror = "2.0"
+
+# 2. Native Graphics & High-Density Immediate-Mode UI Layer
+egui = "0.27"
+eframe = { version = "0.27", default-features = false, features = [
+    "default_fonts",
+    "glow",
+    "persistence",
+    "wayland",
+    "x11",
+] }
+
+# 3. Multi-Kernel IPC, Hashing & Stream Utilities
+bytes = "1.6"
 sha2 = "0.10"
 hex = "0.4"
-uuid = { version = "1.10", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
-bytes = "1.7"
-thiserror = "2.0"
-anyhow = "1.0"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-evcxr = "0.18"
-pyo3 = { version = "0.24", features = ["auto-initialize"] }
-arrow = { version = "54.0", features = ["ffi", "ipc"] }
-arrow-array = { version = "54.0", features = ["ffi"] }
-arrow-schema = { version = "54.0", features = ["ffi", "serde"] }
-arrow-data = { version = "54.0", features = ["ffi"] }
-arrow-buffer = "54.0"
-arrow-ipc = "54.0"
-memmap2 = "0.9"
-libc = "0.2"
-clap = { version = "4.5", features = ["derive"] }
+uuid = { version = "1.10", features = ["v4", "serde"] }
+
+# 4. Reverse Engineering & Binary Introspection (Pure Rust)
+goblin = "0.8"
+object = "0.32"
+capstone = "0.11"
+
+# 5. Real-Time Telemetry Subsystem
+sysinfo = "0.30"
